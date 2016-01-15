@@ -20,7 +20,7 @@ namespace SilentOrbit.ProtocolBuffers
 
             //Read entire file and pass it into a TokenReader
             string t = "";
-            using (TextReader reader = new StreamReader(path, Encoding.UTF8))
+            using (TextReader reader = new StreamReader(File.OpenRead(path), Encoding.UTF8))
             {
                 while (true)
                 {
@@ -298,10 +298,10 @@ namespace SilentOrbit.ProtocolBuffers
 
             switch (key)
             {
-            //None at the moment
-            //case "namespace":
-            //    m.OptionNamespace = value;
-            //    break;
+                //None at the moment
+                //case "namespace":
+                //    m.OptionNamespace = value;
+                //    break;
                 default:
                     Console.WriteLine("Warning: Unknown option: " + key + " = " + value);
                     break;

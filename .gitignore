@@ -6,3 +6,5 @@ bin/
 obj/
 *.user
 packages/
+.vs/
+project.lock.json

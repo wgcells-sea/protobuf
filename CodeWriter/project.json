@@ -1,0 +1,48 @@
+{
+    "version": "1.0.0-*",
+    "description": "",
+    "authors": [ "peter" ],
+    "tags": [ "" ],
+    "projectUrl": "",
+    "licenseUrl": "",
+
+    "compilationOptions": {
+        "define": [ "DNX" ]
+    },
+
+    "configurations": {
+        "Debug": {
+            "compilationOptions": {
+                "define": [ "DEBUG", "DNX" ]
+            }
+        },
+        "Release": {
+            "compilationOptions": {
+                "define": [ "RELEASE", "DNX" ],
+                "optimize": true
+            }
+        }
+    },
+
+    "frameworks": {
+        "net40": { },
+        "net451": { },
+        "net46": { },
+        "dnx451": { },
+        "dnxcore50": {
+            "dependencies": {
+                "System.Collections": "4.0.0.0",
+                "System.Collections.Concurrent": "4.0.0.0",
+                "System.ComponentModel": "4.0.0.0",
+                "System.Linq": "4.0.0.0",
+                "System.Reflection": "4.0.10.0",
+                "System.Runtime": "4.0.20.0",
+                "System.Runtime.InteropServices": "4.0.10.0",
+                "System.Threading": "4.0.0.0",
+                "System.Threading.Tasks": "4.0.0.0",
+                "System.IO": "4.0.11-*",
+                "System.IO.FileSystem": "4.0.0"
+            }
+        }
+    }
+}

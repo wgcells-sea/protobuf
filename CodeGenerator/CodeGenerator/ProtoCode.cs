@@ -107,7 +107,7 @@ This file will be overwritten when CodeGenerator is run.");
                     var messageSerializer = new MessageSerializer(cw, options);
                     messageSerializer.GenerateClassSerializer(m);
                 }
-                if(ns != null)
+                if (ns != null)
                     cw.EndBracket();
             }
 
@@ -119,7 +119,8 @@ This file will be overwritten when CodeGenerator is run.");
             else
             {
                 string libPath = Path.Combine(Path.GetDirectoryName(csPath), "ProtocolParser.cs");
-                using (TextWriter codeWriter = new StreamWriter(libPath, false, Encoding.UTF8))
+                var stream = new FileStream(libPath, FileMode.Create);
+                using (TextWriter codeWriter = new StreamWriter(stream, Encoding.UTF8))
                 {
                     codeWriter.NewLine = "\r\n";
                     ReadCode(codeWriter, "ProtocolParser", true);
@@ -141,7 +142,12 @@ This file will be overwritten when CodeGenerator is run.");
         {
             code.WriteLine("#region " + name);
 
-            using (TextReader tr = new StreamReader(Assembly.GetExecutingAssembly().GetManifestResourceStream(name), Encoding.UTF8))
+#if DNX
+            var assembly = typeof(ProtoCode).GetTypeInfo().Assembly;
+#else
+            var assembly = Assembly.GetExecutingAssembly();
+#endif
+            using (TextReader tr = new StreamReader(assembly.GetManifestResourceStream(name), Encoding.UTF8))
             {
                 while (true)
                 {

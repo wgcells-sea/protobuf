@@ -45,7 +45,8 @@ namespace SilentOrbit.Code
             this.IndentPrefix = DefaultIndentPrefix;
             this.NewLine = DefaultNewLine;
 
-            w = new StreamWriter(csPath, false, Encoding.UTF8);
+            var stream = new FileStream(csPath, FileMode.Create);
+            w = new StreamWriter(stream, Encoding.UTF8);
         }
 
         /// <summary>
@@ -56,7 +57,8 @@ namespace SilentOrbit.Code
             get
             {
                 w.Flush();
-                return Encoding.UTF8.GetString(ms.ToArray());
+                var a = ms.ToArray();
+                return Encoding.UTF8.GetString(a, 0, a.Length);
             }
         }
 
@@ -67,7 +69,7 @@ namespace SilentOrbit.Code
 
         public virtual void Dispose()
         {
-            w.Close();
+            w.Dispose();
         }
 
         #endregion

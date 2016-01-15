@@ -1,13 +1,42 @@
 using System;
-using CommandLine;
 using System.Linq;
 using System.Collections.Generic;
 using System.IO;
-using CommandLine.Text;
 using System.Reflection;
 
 namespace SilentOrbit.ProtocolBuffers
 {
+    public class ValueAttribute : Attribute
+    {
+        public bool Required;
+        private int v;
+
+        public ValueAttribute(int v)
+        {
+            this.v = v;
+        }
+    }
+    public class OptionAttribute : Attribute
+    {
+        private char shortKey;
+        private string longKey;
+        public bool Required { get; set; }
+
+        public OptionAttribute(char shortKey, string longKey)
+        {
+            this.shortKey = shortKey;
+            this.longKey = longKey;
+        }
+
+        public OptionAttribute(string longKey)
+        {
+            this.longKey = longKey;
+        }
+
+        public string HelpText { get; set; }
+
+    }
+
     /// <summary>
     /// Options set using Command Line arguments
     /// </summary>
@@ -103,10 +132,12 @@ namespace SilentOrbit.ProtocolBuffers
 
         public static Options Parse(string[] args)
         {
-            var result = Parser.Default.ParseArguments<Options>(args);
-            var options = result.Value;
-            if (result.Errors.Any())
-                return null;
+            //var result = Parser.Default.ParseArguments<Options>(args);
+            //var options = result.Value;
+            throw new NotImplementedException();
+            var options = new Options(); //Dummy
+            //if (result.Errors.Any())
+            //    return null;
 
             if (args == null || args.Length == 0 || options.ShowHelp)
             {
@@ -192,7 +223,7 @@ namespace SilentOrbit.ProtocolBuffers
 
         public string GetUsage()
         {
-            var version = Assembly.GetExecutingAssembly().GetName().Version;
+            /*var version = typeof(Options).GetTypeInfo().Assembly.GetName().Version;
             var help = new HelpText
             {
                 Heading = new HeadingInfo("ProtoBuf Code Generator", version.ToString()),
@@ -202,7 +233,8 @@ namespace SilentOrbit.ProtocolBuffers
             };
             help.AddPreOptionsLine("Usage: CodeGenerator.exe [input-files.proto] --output output-file.cs");
             help.AddOptions(this);
-            return help;
+            return help;*/
+            return "dummy";
         }
     }
 }
