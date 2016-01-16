@@ -3,9 +3,14 @@ using System.Linq;
 using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
+#if !DNX
+using CommandLine;
+#endif
 
 namespace SilentOrbit.ProtocolBuffers
 {
+
+#if DNX
     public class ValueAttribute : Attribute
     {
         public bool Required;
@@ -36,6 +41,7 @@ namespace SilentOrbit.ProtocolBuffers
         public string HelpText { get; set; }
 
     }
+#endif
 
     /// <summary>
     /// Options set using Command Line arguments
@@ -132,12 +138,14 @@ namespace SilentOrbit.ProtocolBuffers
 
         public static Options Parse(string[] args)
         {
-            //var result = Parser.Default.ParseArguments<Options>(args);
-            //var options = result.Value;
-            throw new NotImplementedException();
-            var options = new Options(); //Dummy
-            //if (result.Errors.Any())
-            //    return null;
+#if DNX
+            var options = new Options();
+#else
+            var result = Parser.Default.ParseArguments<Options>(args);
+            var options = result.Value;
+            if (result.Errors.Any())
+                return null;
+#endif
 
             if (args == null || args.Length == 0 || options.ShowHelp)
             {

@@ -1,5 +1,9 @@
 {
-    "version": "1.0-*",
+    "version": "1.0.0-*",
+    "description": "",
+    "authors": [ "Peter Hultqvist" ],
+    "projectUrl": "https://silentorbit.com/protobuf/",
+    "licenseUrl": "https://www.apache.org/licenses/LICENSE-2.0",
 
     "compilationOptions": {
         "define": [ "DNX" ]
@@ -8,12 +12,12 @@
     "configurations": {
         "Debug": {
             "compilationOptions": {
-                "define": [ "DEBUG" ]
+                "define": [ "DEBUG", "DNX" ]
             }
         },
         "Release": {
             "compilationOptions": {
-                "define": [ "RELEASE" ],
+                "define": [ "RELEASE", "DNX" ],
                 "optimize": true
             }
         }
