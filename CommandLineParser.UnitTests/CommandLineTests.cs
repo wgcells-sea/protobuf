@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using CommandLineParser.Attribute;
@@ -39,16 +40,26 @@ namespace CommandLineParser.UnitTests
             AssertResults(options, expectedArguments);
         }
         
-        [TestCase("-i=Input.bin --output=Out.bin -vlength=150", "InputFile", "MaximumLength", "Verbose")]
-        [TestCase("--input=Input.bin --output=Out.bin -vlength=150", "InputFile", "MaximumLength", "Verbose")]
-        [TestCase("Input.bin --output=Out.bin -vlength=150", "InputFile", "MaximumLength", "Verbose")]
+        //[TestCase("-i=Input.bin --output=Out.bin -vlength=150", "InputFile", "MaximumLength", "Verbose")]
+        //[TestCase("--input=Input.bin --output=Out.bin -vlength=150", "InputFile", "MaximumLength", "Verbose")]
+        //[TestCase("Input.bin --output=Out.bin -vlength=150", "InputFile", "MaximumLength", "Verbose")]
+        //[TestCase("Input.bin -o=Out.bin -vlength=150", "InputFile", "OutputFile", "MaximumLength", "Verbose")]
         [TestCase("Input.bin Out.bin -vlength=150", "InputFile", "OutputFile", "MaximumLength", "Verbose")]
-        [TestCase("Input.bin -o=Out.bin -vlength=150", "InputFile", "OutputFile", "MaximumLength", "Verbose")]
         public void Parser_WhenParsingIndexedOptions_ParsesArgumentsCorrectly(string input, params string[] expectedArguments)
         {
             TestIndexedOptions options = ParseArguments<TestIndexedOptions>(input);
 
             AssertResults(options, expectedArguments);
+        }
+
+        [TestCase("-i=Input.bin -vlength=150")]
+        [TestCase("-vlength=150")]
+        [TestCase("--output=Out.bin -vlength=150")]
+        [TestCase("-vlength=150")]
+        [TestCase("-o=Out.bin -i=Input.bin -vlength=150")]
+        public void Parser_WhenParsingInvalidIndexedOptions_ThrowsException(string input)
+        {
+            Assert.Throws<ArgumentException>(()=>ParseArguments<TestIndexedOptions>(input));
         }
 
         private T ParseArguments<T>(string input) where T : class, new()

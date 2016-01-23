@@ -31,7 +31,7 @@ namespace CommandLineParser.Parser
         {
             _parseMap = new Dictionary<ParseState, Func<string, string>>
             {
-                { ParseState.PriorityOption, ParsePriorityOption},
+                { ParseState.IndexedOption, ParseIndexedOption},
                 { ParseState.GenericOption, ParseGenericOption},
                 { ParseState.ShortOption, ParseShortOption},
                 { ParseState.LongOption, ParseLongOption},
@@ -126,7 +126,7 @@ namespace CommandLineParser.Parser
                 .FirstOrDefault(x => IsCandidate(argument, x.Option));
 
             if (priorityOption != null)
-                return ParseState.PriorityOption;
+                return ParseState.IndexedOption;
 
             if (booleanOption != null)
                 return ParseState.BooleanOption;
@@ -143,7 +143,7 @@ namespace CommandLineParser.Parser
             return ParseState.Value;
         }
 
-        private string ParsePriorityOption(string argument)
+        private string ParseIndexedOption(string argument)
         {
             ParseRule priorityOption = _rulesTable
                 .Where(x => x.Value.Option.Index>=0 && x.Value.Value == null)
@@ -154,13 +154,26 @@ namespace CommandLineParser.Parser
             if (priorityOption != null)
             {
                 _currentRule = priorityOption;
+
+                /*
+                TODO: discuss if we can start specifying indexed properties by name or just by value
+                if (argument.StartsWith(SINGLE_HYPHEN))
+                    return ParseShortOption(argument);
+
+                if (argument.StartsWith(DOUBLE_HYPHEN))
+                    return ParseLongOption(argument);
+                */
+                if (argument.StartsWith(SINGLE_HYPHEN) || argument.StartsWith(DOUBLE_HYPHEN))
+                    throw new ArgumentException(string.Format("Argument {0} is not valid for a indexed based option", argument));
+
                 _currentRule.Value = Convert.ChangeType(argument, _currentRule.Property.PropertyType);
                 _currentRule = null;
+            
 
-                return null;
+                return string.Empty;
             }
 
-            return argument;
+            throw new InvalidOperationException("No indexed option was found");
         }
 
         private string ParseGenericOption(string argument)
@@ -271,7 +284,7 @@ namespace CommandLineParser.Parser
         private enum ParseState
         {
             None,
-            PriorityOption,
+            IndexedOption,
             GenericOption,
             ShortOption,
             LongOption,
