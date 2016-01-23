@@ -11,13 +11,14 @@ namespace CommandLineParser.Parser
 {
     public class Parser
     {
-        private const string EQUAL_MARKER = "=";
+        private const char SEPARATOR = ' ';
+        private const char EQUAL_MARKER = '=';
         private const string SINGLE_HYPHEN = "-";
         private const string DOUBLE_HYPHEN = "--";
-        private readonly Dictionary<string, ParseEntry> _rulesTable;
+        private readonly Dictionary<string, ParseRule> _rulesTable;
         private readonly Dictionary<ParseState, Func<string, string>> _parseMap; 
         private ParseState _state;
-        private ParseEntry _currentEntry;
+        private ParseRule _currentRule;
 
         private static readonly Lazy<Parser> _instance = new Lazy<Parser>(() => new Parser());
 
@@ -31,29 +32,68 @@ namespace CommandLineParser.Parser
             _parseMap = new Dictionary<ParseState, Func<string, string>>
             {
                 { ParseState.PriorityOption, ParsePriorityOption},
+                { ParseState.GenericOption, ParseGenericOption},
                 { ParseState.ShortOption, ParseShortOption},
                 { ParseState.LongOption, ParseLongOption},
+                { ParseState.BooleanOption, ParseBooleanOption},
                 { ParseState.Value, ParseValue}
             };
-            _rulesTable = new Dictionary<string, ParseEntry>();
+            _rulesTable = new Dictionary<string, ParseRule>();
             _state = ParseState.None;
         }
 
-        public void SetParseRules(List<ParseEntry> rules)
+        public void SetParseRules(List<ParseRule> rules)
         {
             foreach (var rule in rules)
             {
-                _rulesTable[rule.Option.ShortName] = rule;
-                _rulesTable[rule.Option.LongName] = rule;
+                if (rule.Option.ShortName != null)
+                {
+                    _rulesTable.Add(rule.Option.ShortName, rule);
+                }
+
+                if (rule.Option.LongName != null)
+                {
+                    _rulesTable.Add(rule.Option.LongName, rule);
+                }
             }
         }
 
-        public T Parse<T>(string[] arguments) where T : class
+        public T Parse<T>(string[] arguments) where T : class, new()
         {
-            return null;
+            foreach (var argument in arguments)
+            {
+                ParseArgument(argument);
+            }
+
+            T result = BuildResult<T>();
+
+            return result;
         }
 
-        public void ParseArgument(string argument)
+        public T Parse<T>(string input) where T : class, new()
+        {
+            string[] arguments = input.Split(SEPARATOR);
+            T result = Parse<T>(arguments);
+
+            return result;
+        }
+
+        private T BuildResult<T>() where T : class, new()
+        {
+            T result = new T();
+            IEnumerable<ParseRule> parsedRules = _rulesTable
+                .Where(x => x.Value != null)
+                .Select(x=>x.Value);
+
+            foreach (var entry in parsedRules)
+            {
+                result.SetProperty(entry.Property.Name, entry.Value);
+            }
+
+            return result;
+        }
+
+        private void ParseArgument(string argument)
         {
             if (argument == null) 
                 throw new ArgumentNullException("argument");
@@ -67,27 +107,45 @@ namespace CommandLineParser.Parser
 
         private ParseState GetTransition(string argument)
         {
-            ParseEntry priorityOption = _rulesTable
-                .Where(x => x.Value.Option.Index>=0 && x.Value.Value == null)
+            ParseRule priorityOption = _rulesTable
+                .Where(x => x.Value.Option.Index >= 0 && x.Value.Value == null)
                 .Select(x => x.Value)
                 .OrderBy(x => x.Option.Index)
                 .FirstOrDefault();
 
+            ParseRule booleanOption = _rulesTable
+                .Where(x => x.Value.Property.PropertyType.IsBoolean())
+                .Select(x => x.Value)
+                .OrderBy(x=>x.Option.LongName == null ? x.Option.ShortName.Length : x.Option.LongName.Length)
+                .FirstOrDefault(x => IsCandidate(argument, x.Option));
+
+            ParseRule regularOption = _rulesTable
+                .Where(x => !x.Value.Property.PropertyType.IsBoolean())
+                .Select(x => x.Value)
+                .OrderBy(x => x.Option.LongName == null ? x.Option.ShortName.Length : x.Option.LongName.Length)
+                .FirstOrDefault(x => IsCandidate(argument, x.Option));
+
             if (priorityOption != null)
                 return ParseState.PriorityOption;
-            
+
+            if (booleanOption != null)
+                return ParseState.BooleanOption;
+
             if (argument.StartsWith(DOUBLE_HYPHEN))
                 return ParseState.LongOption;
 
             if (argument.StartsWith(SINGLE_HYPHEN))
                 return ParseState.ShortOption;
 
+            if (argument.IndexOf(EQUAL_MARKER) > 0 || regularOption!=null)
+                return ParseState.GenericOption;
+
             return ParseState.Value;
         }
 
         private string ParsePriorityOption(string argument)
         {
-            ParseEntry priorityOption = _rulesTable
+            ParseRule priorityOption = _rulesTable
                 .Where(x => x.Value.Option.Index>=0 && x.Value.Value == null)
                 .Select(x => x.Value)
                 .OrderBy(x => x.Option.Index)
@@ -95,14 +153,21 @@ namespace CommandLineParser.Parser
 
             if (priorityOption != null)
             {
-                _currentEntry = priorityOption;
-                _currentEntry.Value = Convert.ChangeType(argument, _currentEntry.Property.PropertyType);
-                _currentEntry = null;
+                _currentRule = priorityOption;
+                _currentRule.Value = Convert.ChangeType(argument, _currentRule.Property.PropertyType);
+                _currentRule = null;
 
                 return null;
             }
 
             return argument;
+        }
+
+        private string ParseGenericOption(string argument)
+        {
+            string result = ParseOption(argument);
+
+            return result;
         }
 
         private string ParseShortOption(string argument)
@@ -123,45 +188,94 @@ namespace CommandLineParser.Parser
 
         private string ParseOption(string argument)
         {
-            foreach (var option in _rulesTable)
-            {
-                if (argument.StartsWith(option.Key))
-                {
-                    argument = argument.Substring(option.Key.Length);
-                    _currentEntry = option.Value;
-                    _state = option.Value.Property.PropertyType.IsBoolean() ?
-                        ParseState.None :
-                        ParseState.Value;
+            var matchingRule = _rulesTable
+                .Where(x => argument.StartsWith(x.Key))
+                .OrderByDescending(x => x.Key.Length)
+                .FirstOrDefault();
 
-                    return argument;
-                }
+            if (matchingRule.Equals(default(KeyValuePair<string, ParseRule>)))
+                throw new ArgumentException(string.Format("Argument {0} is not mapped to any option", argument));
+
+            var isBoolean = matchingRule.Value.Property.PropertyType.IsBoolean();
+            argument = argument.Substring(matchingRule.Key.Length);
+            _currentRule = matchingRule.Value;
+            _state = isBoolean
+                ? ParseState.BooleanOption
+                : ParseState.Value;
+            
+            return argument;
+        }
+
+        private string ParseBooleanOption(string argument)
+        {
+            ParseRule booleanOption = _rulesTable
+                .Where(x => x.Value.Property.PropertyType.IsBoolean())
+                .Select(x => x.Value)
+                .OrderBy(x => x.Option.LongName == null ? x.Option.ShortName.Length : x.Option.LongName.Length)
+                .First(x => IsCandidate(argument, x.Option));
+
+            _currentRule = booleanOption;
+            _currentRule.Value = true;
+            _currentRule = null;
+            _state = ParseState.None;
+
+            if (booleanOption.Option.LongName != null && argument.StartsWith(DOUBLE_HYPHEN + booleanOption.Option.LongName))
+            {
+                argument = argument.Substring((DOUBLE_HYPHEN + booleanOption.Option.LongName).Length);
+            }
+            else if(booleanOption.Option.ShortName != null && argument.StartsWith(SINGLE_HYPHEN + booleanOption.Option.ShortName))
+            {
+                argument = argument.Substring((SINGLE_HYPHEN + booleanOption.Option.ShortName).Length);
             }
 
-            throw new ArgumentException(string.Format("Argument {0} is not mapped to any option", argument));
+            return argument;
         }
 
         private string ParseValue(string argument)
         {
-            if (_currentEntry == null) 
+            if (_currentRule == null) 
                 throw new InvalidOperationException(string.Format("There is not option for value {0}", argument));
 
-            TypeConverter converter = TypeDescriptor.GetConverter(_currentEntry.Property.PropertyType);
+            TypeConverter converter = TypeDescriptor.GetConverter(_currentRule.Property.PropertyType);
+
+            argument = argument.Trim(EQUAL_MARKER);
+            argument = argument.Trim();
 
             if (!converter.IsValid(argument))
-                throw new InvalidOperationException(string.Format("The provided value {0} is not assignable to option {1}", argument, _currentEntry.Option.ShortName ?? _currentEntry.Option.LongName));
+                throw new InvalidOperationException(string.Format("The provided value {0} is not assignable to option {1}", argument, _currentRule.Option.ShortName ?? _currentRule.Option.LongName));
             
-            _currentEntry.Value = Convert.ChangeType(argument, _currentEntry.Property.PropertyType);
-            _currentEntry = null;
+            _currentRule.Value = Convert.ChangeType(argument, _currentRule.Property.PropertyType);
+            _currentRule = null;
 
             return null;
+        }
+
+        private bool IsCandidate(string argument, OptionAttribute option)
+        {
+            if (option.LongName != null)
+            {
+                if (argument.StartsWith(option.LongName) ||
+                argument.StartsWith(SINGLE_HYPHEN + option.LongName) ||
+                argument.StartsWith(DOUBLE_HYPHEN + option.LongName))
+                    return true;
+            } 
+
+            if (argument.StartsWith(option.ShortName) ||
+                argument.StartsWith(SINGLE_HYPHEN + option.ShortName) ||
+                argument.StartsWith(DOUBLE_HYPHEN + option.ShortName))
+                return true;
+
+            return false;
         }
 
         private enum ParseState
         {
             None,
             PriorityOption,
+            GenericOption,
             ShortOption,
             LongOption,
+            BooleanOption,
             Value
         }
     }

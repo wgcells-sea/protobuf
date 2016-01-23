@@ -10,7 +10,7 @@ namespace CommandLineParser.Attribute
         public string HelpText { get; set; }
         public bool Required { get; set; }
         public int Index { get; set; }
-        
+
         public OptionAttribute(string shortName = null, string longName = null)
         {
             ShortName = shortName;
