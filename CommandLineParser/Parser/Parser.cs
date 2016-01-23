@@ -27,7 +27,7 @@ namespace CommandLineParser.Parser
             get { return _instance.Value; }
         }
 
-        private Parser()
+        public Parser()
         {
             _parseMap = new Dictionary<ParseState, Func<string, string>>
             {
