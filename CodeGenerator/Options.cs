@@ -1,10 +1,10 @@
 using System;
-using CommandLine;
-using System.Linq;
 using System.Collections.Generic;
 using System.IO;
-using CommandLine.Text;
 using System.Reflection;
+using CommandLineParser;
+using CommandLineParser.Attribute;
+using CommandLineParser.Parser;
 
 namespace SilentOrbit.ProtocolBuffers
 {
@@ -16,7 +16,7 @@ namespace SilentOrbit.ProtocolBuffers
         /// <summary>
         /// Show the help
         /// </summary>
-        [Option('h', "help", HelpText = "Show this help")]
+        [Option("h", "help", HelpText = "Show this help")]
         public bool ShowHelp { get; set; }
 
         /// <summary>
@@ -34,16 +34,16 @@ namespace SilentOrbit.ProtocolBuffers
         /// <summary>
         /// Generated code indent using tabs
         /// </summary>
-        [Option('t', "use-tabs", HelpText = "If set generated code will use tabs rather than 4 spaces.")]
+        [Option("t", "use-tabs", HelpText = "If set generated code will use tabs rather than 4 spaces.")]
         public bool UseTabs { get; set; }
 
-        [Value(0, Required = true)]
+        [Option(Required = false, Index = 0)]
         public IEnumerable<string> InputProto { get; set; }
 
         /// <summary>
         /// Path to the generated cs files
         /// </summary>
-        [Option('o', "output", Required = false, HelpText = "Path to the generated .cs file.")]
+        [Option("o", "output", Required = false, HelpText = "Path to the generated .cs file.")]
         public string OutputPath { get; set; }
 
         /// <summary>
@@ -99,14 +99,13 @@ namespace SilentOrbit.ProtocolBuffers
         /// </summary>
         [Option("no-generate-imported", Required = false, HelpText = "Don't generate code from imported .proto files.")]
         public bool NoGenerateImported { get; set; }
-
-
+        
         public static Options Parse(string[] args)
         {
-            var result = Parser.Default.ParseArguments<Options>(args);
-            var options = result.Value;
-            if (result.Errors.Any())
-                return null;
+            var options = Parser.Instance.Parse<Options>(args);
+
+            // TODO: if (result.Errors.Any())
+            //    return null;
 
             if (args == null || args.Length == 0 || options.ShowHelp)
             {
@@ -193,7 +192,7 @@ namespace SilentOrbit.ProtocolBuffers
         public string GetUsage()
         {
             var version = Assembly.GetExecutingAssembly().GetName().Version;
-            var help = new HelpText
+            /*var help = new HelpText
             {
                 Heading = new HeadingInfo("ProtoBuf Code Generator", version.ToString()),
                 Copyright = new CopyrightInfo("Peter Hultqvist", version.Major),
@@ -202,7 +201,9 @@ namespace SilentOrbit.ProtocolBuffers
             };
             help.AddPreOptionsLine("Usage: CodeGenerator.exe [input-files.proto] --output output-file.cs");
             help.AddOptions(this);
-            return help;
+            return help;*/
+
+            return string.Empty;
         }
     }
 }
