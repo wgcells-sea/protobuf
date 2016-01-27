@@ -19,14 +19,7 @@ namespace CommandLineParser.Parser
         private readonly Dictionary<ParseState, Func<string, string>> _parseMap; 
         private ParseState _state;
         private ParseRule _currentRule;
-
-        private static readonly Lazy<Parser> _instance = new Lazy<Parser>(() => new Parser());
-
-        public static Parser Instance
-        {
-            get { return _instance.Value; }
-        }
-
+        
         public Parser()
         {
             _parseMap = new Dictionary<ParseState, Func<string, string>>
@@ -42,24 +35,10 @@ namespace CommandLineParser.Parser
             _state = ParseState.None;
         }
 
-        public void SetParseRules(List<ParseRule> rules)
-        {
-            foreach (var rule in rules)
-            {
-                if (rule.Option.ShortName != null)
-                {
-                    _rulesTable.Add(rule.Option.ShortName, rule);
-                }
-
-                if (rule.Option.LongName != null)
-                {
-                    _rulesTable.Add(rule.Option.LongName, rule);
-                }
-            }
-        }
-
         public T Parse<T>(string[] arguments) where T : class, new()
         {
+            BuildParseRules<T>();
+
             foreach (var argument in arguments)
             {
                 ParseArgument(argument);
@@ -76,6 +55,31 @@ namespace CommandLineParser.Parser
             T result = Parse<T>(arguments);
 
             return result;
+        }
+
+        private void BuildParseRules<T>()
+        {
+            List<ParseRule> rules = ReflectionExtensions
+                .GetAttributes<T, OptionAttribute>()
+                .Select(x => new ParseRule
+                            {
+                                Property = x.Key,
+                                Option = x.Value
+                            })
+                .ToList();
+
+            foreach (var rule in rules)
+            {
+                if (rule.Option.ShortName != null)
+                {
+                    _rulesTable.Add(rule.Option.ShortName, rule);
+                }
+
+                if (rule.Option.LongName != null)
+                {
+                    _rulesTable.Add(rule.Option.LongName, rule);
+                }
+            }
         }
 
         private T BuildResult<T>() where T : class, new()
@@ -154,17 +158,9 @@ namespace CommandLineParser.Parser
             if (priorityOption != null)
             {
                 _currentRule = priorityOption;
-
-                /*
-                TODO: discuss if we can start specifying indexed properties by name or just by value
-                if (argument.StartsWith(SINGLE_HYPHEN))
-                    return ParseShortOption(argument);
-
-                if (argument.StartsWith(DOUBLE_HYPHEN))
-                    return ParseLongOption(argument);
-                */
+                
                 if (argument.StartsWith(SINGLE_HYPHEN) || argument.StartsWith(DOUBLE_HYPHEN))
-                    throw new ArgumentException(string.Format("Argument {0} is not valid for a indexed based option", argument));
+                    throw new ArgumentException(string.Format("Argument {0} could not be mapped to any option", argument));
 
                 _currentRule.Value = Convert.ChangeType(argument, _currentRule.Property.PropertyType);
                 _currentRule = null;
@@ -207,7 +203,7 @@ namespace CommandLineParser.Parser
                 .FirstOrDefault();
 
             if (matchingRule.Equals(default(KeyValuePair<string, ParseRule>)))
-                throw new ArgumentException(string.Format("Argument {0} is not mapped to any option", argument));
+                throw new ArgumentException(string.Format("Argument {0} is not available", argument));
 
             var isBoolean = matchingRule.Value.Property.PropertyType.IsBoolean();
             argument = argument.Substring(matchingRule.Key.Length);
@@ -255,7 +251,7 @@ namespace CommandLineParser.Parser
             argument = argument.Trim();
 
             if (!converter.IsValid(argument))
-                throw new InvalidOperationException(string.Format("The provided value {0} is not assignable to option {1}", argument, _currentRule.Option.ShortName ?? _currentRule.Option.LongName));
+                throw new InvalidOperationException(string.Format("The value {0} cannot be assigned to option {1}", argument, _currentRule.Option.ShortName ?? _currentRule.Option.LongName));
             
             _currentRule.Value = Convert.ChangeType(argument, _currentRule.Property.PropertyType);
             _currentRule = null;
