@@ -40,10 +40,6 @@ namespace CommandLineParser.UnitTests
             AssertResults(options, expectedArguments);
         }
         
-        //[TestCase("-i=Input.bin --output=Out.bin -vlength=150", "InputFile", "MaximumLength", "Verbose")]
-        //[TestCase("--input=Input.bin --output=Out.bin -vlength=150", "InputFile", "MaximumLength", "Verbose")]
-        //[TestCase("Input.bin --output=Out.bin -vlength=150", "InputFile", "MaximumLength", "Verbose")]
-        //[TestCase("Input.bin -o=Out.bin -vlength=150", "InputFile", "OutputFile", "MaximumLength", "Verbose")]
         [TestCase("Input.bin Out.bin -vlength=150", "InputFile", "OutputFile", "MaximumLength", "Verbose")]
         public void Parser_WhenParsingIndexedOptions_ParsesArgumentsCorrectly(string input, params string[] expectedArguments)
         {
@@ -65,14 +61,6 @@ namespace CommandLineParser.UnitTests
         private T ParseArguments<T>(string input) where T : class, new()
         {
             Parser.Parser parser = new Parser.Parser();
-
-            Dictionary<PropertyInfo, OptionAttribute> rules = ReflectionExtensions.GetAttributes<T, OptionAttribute>();
-            parser.SetParseRules(rules.Select(x => new ParseRule
-            {
-                Property = x.Key,
-                Option = x.Value
-            }).ToList());
-
             T options = parser.Parse<T>(input);
 
             return options;
