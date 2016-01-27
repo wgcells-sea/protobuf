@@ -104,10 +104,7 @@ namespace SilentOrbit.ProtocolBuffers
         {
             var parser = new Parser();
             var options = parser.Parse<Options>(args);
-
-            // TODO: if (result.Errors.Any())
-            //    return null;
-
+            
             if (args == null || args.Length == 0 || options.ShowHelp)
             {
                 Console.Error.WriteLine(options.GetUsage());
