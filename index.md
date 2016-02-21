@@ -1,11 +1,14 @@
 ---
 layout: default
-title: Start
+title: ProtoBuf
 menu_order: 1
 menu:
+  title: Start
 ---
 
-C# code generator for serialization into [Googles Protocol Buffers](http://code.google.com/apis/protocolbuffers/docs/overview.html) wire format.
+# ProtoBuf
+
+ProtoBuf is a [Google Protocol Buffers](http://code.google.com/apis/protocolbuffers/docs/overview.html) implementation by generating custom C# code for your .proto specifications.
 
 Parses a .proto file and generates C# source files
 with classes for every message as well as code for
