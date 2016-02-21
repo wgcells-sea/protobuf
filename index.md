@@ -22,7 +22,7 @@ reading and writing them to the Protocol Buffers binary format.
 
 ## Direct Contact, FeedBack, Bugs
 
-You can contact me using support@silentorbit.com .
+You can contact me using [e-mail](mailto:support@silentorbit.com).
 
 Public issues can also be submitted to the GitHub project page.
 
