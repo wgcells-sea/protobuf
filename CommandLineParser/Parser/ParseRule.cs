@@ -24,5 +24,13 @@ namespace CommandLineParser.Parser
 
             return Type.GetTypeCode(type) == TypeCode.Boolean;
         }
+
+        public override string ToString()
+        {
+            if(ParsedValue != null)
+                return Option.ToString() + "\n = " + ParsedValue;
+            else
+                return Option.ToString() + "\nNot parsed";
+        }
     }
 }
