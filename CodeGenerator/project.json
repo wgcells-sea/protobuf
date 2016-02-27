@@ -24,7 +24,7 @@
     },
 
     "commands": {
-        "run": "SilentOrbit.ProtocolBuffers.Builder"
+        "run": "SilentOrbit.ProtocolBuffers.Program"
     },
 
     "dependencies": { "CodeWriter": "1.0-*" },
