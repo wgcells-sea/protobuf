@@ -52,27 +52,6 @@ namespace CommandLineParser.Parser
             }
         }
 
-        private string ParseArgumentState(ParseState state, string argument)
-        {
-            switch (state)
-            {
-                case ParseState.IndexedOption:
-                    return ParseIndexedOption(argument);
-                case ParseState.GenericOption:
-                    return ParseGenericOption(argument);
-                case ParseState.ShortOption:
-                    return ParseShortOption(argument);
-                case ParseState.LongOption:
-                    return ParseLongOption(argument);
-                case ParseState.BooleanOption:
-                    return ParseBooleanOption(argument);
-                case ParseState.Value:
-                    return ParseValue(argument);
-                default:
-                    throw new ArgumentException("Unknown state: " + state, "state");
-            }
-        }
-
         private ParseState GetTransition(string argument)
         {
             ParseRule priorityOption = _rulesTable.Values
@@ -106,6 +85,45 @@ namespace CommandLineParser.Parser
                 return ParseState.GenericOption;
 
             return ParseState.Value;
+        }
+        
+        private bool IsCandidate(string argument, OptionAttribute option)
+        {
+            if (option.LongName != null)
+            {
+                if (argument.StartsWith(option.LongName) ||
+                argument.StartsWith(SINGLE_HYPHEN + option.LongName) ||
+                argument.StartsWith(DOUBLE_HYPHEN + option.LongName))
+                    return true;
+            }
+
+            if (argument.StartsWith(option.ShortName) ||
+                argument.StartsWith(SINGLE_HYPHEN + option.ShortName) ||
+                argument.StartsWith(DOUBLE_HYPHEN + option.ShortName))
+                return true;
+
+            return false;
+        }
+
+        private string ParseArgumentState(ParseState state, string argument)
+        {
+            switch (state)
+            {
+                case ParseState.IndexedOption:
+                    return ParseIndexedOption(argument);
+                case ParseState.GenericOption:
+                    return ParseGenericOption(argument);
+                case ParseState.ShortOption:
+                    return ParseShortOption(argument);
+                case ParseState.LongOption:
+                    return ParseLongOption(argument);
+                case ParseState.BooleanOption:
+                    return ParseBooleanOption(argument);
+                case ParseState.Value:
+                    return ParseValue(argument);
+                default:
+                    throw new ArgumentException("Unknown state: " + state, "state");
+            }
         }
 
         private string ParseIndexedOption(string argument)
@@ -216,22 +234,5 @@ namespace CommandLineParser.Parser
             return null;
         }
 
-        private bool IsCandidate(string argument, OptionAttribute option)
-        {
-            if (option.LongName != null)
-            {
-                if (argument.StartsWith(option.LongName) ||
-                argument.StartsWith(SINGLE_HYPHEN + option.LongName) ||
-                argument.StartsWith(DOUBLE_HYPHEN + option.LongName))
-                    return true;
-            }
-
-            if (argument.StartsWith(option.ShortName) ||
-                argument.StartsWith(SINGLE_HYPHEN + option.ShortName) ||
-                argument.StartsWith(DOUBLE_HYPHEN + option.ShortName))
-                return true;
-
-            return false;
-        }
     }
 }
