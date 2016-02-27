@@ -15,14 +15,30 @@ namespace CommandLineParser.Parser
         private const char EQUAL_MARKER = '=';
         private const string SINGLE_HYPHEN = "-";
         private const string DOUBLE_HYPHEN = "--";
+        private readonly List<ParseRule> _rules;
         private readonly Dictionary<string, ParseRule> _rulesTable;
         private ParseState _state;
         private ParseRule _currentRule;
 
-        public ArgumentParser(Dictionary<string, ParseRule> rulesTable)
+        public ArgumentParser(List<ParseRule> rules)
         {
-            _rulesTable = rulesTable;
+            _rules = rules;
+            _rulesTable = GetDictionary(rules);
             _state = ParseState.None;
+        }
+
+        static Dictionary<string, ParseRule> GetDictionary(List<ParseRule> _rulesTable)
+        {
+            var dic = new Dictionary<string, ParseRule>();
+            foreach (var r in _rulesTable)
+            {
+                if (r.Option.ShortName != null)
+                    dic.Add(r.Option.ShortName, r);
+                if (r.Option.LongName != null)
+                    dic.Add(r.Option.LongName, r);
+                //Skip indexed options
+            }
+            return dic;
         }
 
         public void Parse(string[] arguments)
@@ -54,22 +70,22 @@ namespace CommandLineParser.Parser
 
         private ParseState GetTransition(string argument)
         {
-            ParseRule priorityOption = _rulesTable.Values
+            ParseRule indexedOption = _rules
                 .Where(x => x.Option.Index >= 0 && x.ParsedValue == null)
                 .OrderBy(x => x.Option.Index)
                 .FirstOrDefault();
 
-            ParseRule booleanOption = _rulesTable.Values
+            ParseRule booleanOption = _rules
                 .Where(x => x.IsBoolean())
                 .OrderBy(x => x.Option.LongName == null ? x.Option.ShortName.Length : x.Option.LongName.Length)
                 .FirstOrDefault(x => IsCandidate(argument, x.Option));
 
-            ParseRule regularOption = _rulesTable.Values
+            ParseRule regularOption = _rules
                 .Where(x => !x.IsBoolean())
                 .OrderBy(x => x.Option.LongName == null ? x.Option.ShortName.Length : x.Option.LongName.Length)
                 .FirstOrDefault(x => IsCandidate(argument, x.Option));
 
-            if (priorityOption != null)
+            if (indexedOption != null)
                 return ParseState.IndexedOption;
 
             if (booleanOption != null)
@@ -86,7 +102,7 @@ namespace CommandLineParser.Parser
 
             return ParseState.Value;
         }
-        
+
         private bool IsCandidate(string argument, OptionAttribute option)
         {
             if (option.LongName != null)
@@ -128,7 +144,7 @@ namespace CommandLineParser.Parser
 
         private string ParseIndexedOption(string argument)
         {
-            ParseRule priorityOption = _rulesTable.Values
+            ParseRule priorityOption = _rules
                 .Where(x => x.Option.Index >= 0 && x.ParsedValue == null)
                 .OrderBy(x => x.Option.Index)
                 .FirstOrDefault();
@@ -195,7 +211,7 @@ namespace CommandLineParser.Parser
 
         private string ParseBooleanOption(string argument)
         {
-            ParseRule booleanOption = _rulesTable.Values
+            ParseRule booleanOption = _rules
                 .Where(x => x.IsBoolean())
                 .OrderBy(x => x.Option.LongName == null ? x.Option.ShortName.Length : x.Option.LongName.Length)
                 .First(x => IsCandidate(argument, x.Option));

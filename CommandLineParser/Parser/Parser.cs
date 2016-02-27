@@ -12,7 +12,7 @@ namespace CommandLineParser.Parser
     public class Parser<T>
         where T : class, new()
     {
-        private readonly Dictionary<string, ParseRule> _rulesTable;
+        private readonly List<ParseRule> _rulesTable;
         private readonly ArgumentParser<T> _parser;
 
         public Parser()
@@ -21,9 +21,8 @@ namespace CommandLineParser.Parser
             _parser = new ArgumentParser<T>(_rulesTable);
         }
 
-        static Dictionary<string, ParseRule> BuildParseRules()
+        static List<ParseRule> BuildParseRules()
         {
-            var rulesTable = new Dictionary<string, ParseRule>();
             List<ParseRule> rules = ReflectionExtensions
                 .GetAttributes<T, OptionAttribute>()
                 .Select(x => new ParseRule
@@ -32,16 +31,7 @@ namespace CommandLineParser.Parser
                     Option = x.Value
                 })
                 .ToList();
-
-            foreach (var rule in rules)
-            {
-                if (rule.Option.ShortName != null)
-                    rulesTable.Add(rule.Option.ShortName, rule);
-
-                if (rule.Option.LongName != null)
-                    rulesTable.Add(rule.Option.LongName, rule);
-            }
-            return rulesTable;
+            return rules;
         }
 
         public T Parse(string input)
@@ -62,7 +52,7 @@ namespace CommandLineParser.Parser
         private T BuildResult()
         {
             T result = new T();
-            IEnumerable<ParseRule> parsedRules = _rulesTable.Values
+            IEnumerable<ParseRule> parsedRules = _rulesTable
                 .Where(x => x.ParsedValue != null);
 
             foreach (var entry in parsedRules)
