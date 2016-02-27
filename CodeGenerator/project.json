@@ -6,55 +6,43 @@
     "licenseUrl": "https://www.apache.org/licenses/LICENSE-2.0",
 
     "compilationOptions": {
+        "emitEntryPoint": true,
         "define": [ "DNX" ]
     },
 
     "configurations": {
         "Debug": {
             "compilationOptions": {
-                "define": [ "DEBUG", "DNX" ]
+                "define": [ "DEBUG" ]
             }
         },
         "Release": {
             "compilationOptions": {
-                "define": [ "RELEASE", "DNX" ],
+                "define": [ "RELEASE" ],
                 "optimize": true
             }
         }
     },
 
-    "commands": {
-        "run": "SilentOrbit.ProtocolBuffers.Program"
+    "dependencies": {
+        "CodeWriter": "1.0-*"
     },
 
-    "dependencies": { "CodeWriter": "1.0-*" },
+    "commands": {
+        "run": "CodeGenerator"
+    },
 
     "resource": "ProtocolParser\\ProtocolParser*.cs",
 
     "frameworks": {
-        "dnx451": {
-            "compilationOptions": {
-                "define": [ "RELEASE", "DNX" ],
-                "optimize": true
-            }
-        },
+        "dnx451": { },
         "dnxcore50": {
-            "compilationOptions": {
-                "define": [ "RELEASE", "DNX" ],
-                "optimize": true
-            },
             "dependencies": {
-                "System.Collections": "4.0.0.0",
-                "System.Collections.Concurrent": "4.0.0.0",
-                "System.ComponentModel": "4.0.0.0",
-                "System.Linq": "4.0.0.0",
-                "System.Reflection": "4.0.10.0",
-                "System.Runtime": "4.0.20.0",
-                "System.Runtime.InteropServices": "4.0.10.0",
-                "System.Threading": "4.0.0.0",
-                "System.Threading.Tasks": "4.0.0.0",
+                "Microsoft.CSharp": "4.0.1-*",
+                "System.Collections": "4.0.11-*",
                 "System.Console": "4.0.0-*",
-                "System.IO.FileSystem": "4.0.0"
+                "System.Linq": "4.0.1-*",
+                "System.Threading": "4.0.11-*"
             }
         }
     }
