@@ -104,8 +104,16 @@ namespace CommandLineParser.Parser
 
             while (!string.IsNullOrEmpty(argument))
             {
+                //Used to make sure the returned argument is shortened.
+                var prev = argument;
+
                 _state = GetTransition(argument);
                 argument = _parseMap[_state](argument);
+
+                //Make sure the parsing has shortened argument.
+                //Otherwise we risk getting into an infinite loop.
+                if (argument == prev || argument.Length >= prev.Length)
+                    throw new InvalidProgramException("Variable argument was not shortened.");
             }
         }
 
@@ -229,15 +237,13 @@ namespace CommandLineParser.Parser
             _state = ParseState.None;
 
             if (booleanOption.Option.LongName != null && argument.StartsWith(DOUBLE_HYPHEN + booleanOption.Option.LongName))
-            {
-                argument = argument.Substring((DOUBLE_HYPHEN + booleanOption.Option.LongName).Length);
-            }
-            else if (booleanOption.Option.ShortName != null && argument.StartsWith(SINGLE_HYPHEN + booleanOption.Option.ShortName))
-            {
-                argument = argument.Substring((SINGLE_HYPHEN + booleanOption.Option.ShortName).Length);
-            }
+                return argument.Substring((DOUBLE_HYPHEN + booleanOption.Option.LongName).Length);
 
-            return argument;
+            if (booleanOption.Option.ShortName != null && argument.StartsWith(SINGLE_HYPHEN + booleanOption.Option.ShortName))
+                return argument.Substring((SINGLE_HYPHEN + booleanOption.Option.ShortName).Length);
+
+            //This occur if we falsely get a long option name into the ShortName property.
+            throw new InvalidProgramException("No matching boolean option was found");
         }
 
         private string ParseValue(string argument)
