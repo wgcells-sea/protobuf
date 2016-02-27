@@ -282,7 +282,7 @@ namespace CommandLineParser.Parser
 
             return false;
         }
-
+        
         private enum ParseState
         {
             None,
