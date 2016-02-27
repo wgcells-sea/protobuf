@@ -9,55 +9,26 @@ using CommandLineParser.Reflection;
 
 namespace CommandLineParser.Parser
 {
-    public class Parser
+    public class Parser<T>
+        where T : class, new()
     {
         private const char SEPARATOR = ' ';
         private const char EQUAL_MARKER = '=';
         private const string SINGLE_HYPHEN = "-";
         private const string DOUBLE_HYPHEN = "--";
         private readonly Dictionary<string, ParseRule> _rulesTable;
-        private readonly Dictionary<ParseState, Func<string, string>> _parseMap;
         private ParseState _state;
         private ParseRule _currentRule;
 
         public Parser()
         {
-            _parseMap = new Dictionary<ParseState, Func<string, string>>
-            {
-                { ParseState.IndexedOption, ParseIndexedOption},
-                { ParseState.GenericOption, ParseGenericOption},
-                { ParseState.ShortOption, ParseShortOption},
-                { ParseState.LongOption, ParseLongOption},
-                { ParseState.BooleanOption, ParseBooleanOption},
-                { ParseState.Value, ParseValue}
-            };
             _rulesTable = new Dictionary<string, ParseRule>();
             _state = ParseState.None;
+
+            BuildParseRules();
         }
 
-        public T Parse<T>(string[] arguments) where T : class, new()
-        {
-            BuildParseRules<T>();
-
-            foreach (var argument in arguments)
-            {
-                ParseArgument(argument);
-            }
-
-            T result = BuildResult<T>();
-
-            return result;
-        }
-
-        public T Parse<T>(string input) where T : class, new()
-        {
-            string[] arguments = input.Split(SEPARATOR);
-            T result = Parse<T>(arguments);
-
-            return result;
-        }
-
-        private void BuildParseRules<T>()
+        private void BuildParseRules()
         {
             List<ParseRule> rules = ReflectionExtensions
                 .GetAttributes<T, OptionAttribute>()
@@ -82,16 +53,35 @@ namespace CommandLineParser.Parser
             }
         }
 
-        private T BuildResult<T>() where T : class, new()
+        public T Parse(string[] arguments)
+        {
+            foreach (var argument in arguments)
+            {
+                ParseArgument(argument);
+            }
+
+            T result = BuildResult();
+
+            return result;
+        }
+
+        public T Parse(string input)
+        {
+            string[] arguments = input.Split(SEPARATOR);
+            T result = Parse(arguments);
+
+            return result;
+        }
+
+        private T BuildResult()
         {
             T result = new T();
-            IEnumerable<ParseRule> parsedRules = _rulesTable
-                .Where(x => x.Value != null)
-                .Select(x => x.Value);
+            IEnumerable<ParseRule> parsedRules = _rulesTable.Values
+                .Where(x => x.ParsedValue != null);
 
             foreach (var entry in parsedRules)
             {
-                result.SetProperty(entry.Property.Name, entry.Value);
+                result.SetProperty(entry.Property.Name, entry.ParsedValue);
             }
 
             return result;
@@ -108,7 +98,8 @@ namespace CommandLineParser.Parser
                 var prev = argument;
 
                 _state = GetTransition(argument);
-                argument = _parseMap[_state](argument);
+
+                argument = ParseArgumentState(_state, argument);
 
                 //Make sure the parsing has shortened argument.
                 //Otherwise we risk getting into an infinite loop.
@@ -117,23 +108,41 @@ namespace CommandLineParser.Parser
             }
         }
 
+        private string ParseArgumentState(ParseState state, string argument)
+        {
+            switch (state)
+            {
+                case ParseState.IndexedOption:
+                    return ParseIndexedOption(argument);
+                case ParseState.GenericOption:
+                    return ParseGenericOption(argument);
+                case ParseState.ShortOption:
+                    return ParseShortOption(argument);
+                case ParseState.LongOption:
+                    return ParseLongOption(argument);
+                case ParseState.BooleanOption:
+                    return ParseBooleanOption(argument);
+                case ParseState.Value:
+                    return ParseValue(argument);
+                default:
+                    throw new ArgumentException("Unknown state: " + state, "state");
+            }
+        }
+
         private ParseState GetTransition(string argument)
         {
-            ParseRule priorityOption = _rulesTable
-                .Where(x => x.Value.Option.Index >= 0 && x.Value.Value == null)
-                .Select(x => x.Value)
+            ParseRule priorityOption = _rulesTable.Values
+                .Where(x => x.Option.Index >= 0 && x.ParsedValue == null)
                 .OrderBy(x => x.Option.Index)
                 .FirstOrDefault();
 
-            ParseRule booleanOption = _rulesTable
-                .Where(x => x.Value.Property.PropertyType.IsBoolean())
-                .Select(x => x.Value)
+            ParseRule booleanOption = _rulesTable.Values
+                .Where(x => x.IsBoolean())
                 .OrderBy(x => x.Option.LongName == null ? x.Option.ShortName.Length : x.Option.LongName.Length)
                 .FirstOrDefault(x => IsCandidate(argument, x.Option));
 
-            ParseRule regularOption = _rulesTable
-                .Where(x => !x.Value.Property.PropertyType.IsBoolean())
-                .Select(x => x.Value)
+            ParseRule regularOption = _rulesTable.Values
+                .Where(x => !x.IsBoolean())
                 .OrderBy(x => x.Option.LongName == null ? x.Option.ShortName.Length : x.Option.LongName.Length)
                 .FirstOrDefault(x => IsCandidate(argument, x.Option));
 
@@ -157,9 +166,8 @@ namespace CommandLineParser.Parser
 
         private string ParseIndexedOption(string argument)
         {
-            ParseRule priorityOption = _rulesTable
-                .Where(x => x.Value.Option.Index >= 0 && x.Value.Value == null)
-                .Select(x => x.Value)
+            ParseRule priorityOption = _rulesTable.Values
+                .Where(x => x.Option.Index >= 0 && x.ParsedValue == null)
                 .OrderBy(x => x.Option.Index)
                 .FirstOrDefault();
 
@@ -170,7 +178,7 @@ namespace CommandLineParser.Parser
                 if (argument.StartsWith(SINGLE_HYPHEN) || argument.StartsWith(DOUBLE_HYPHEN))
                     throw new ArgumentException(string.Format("Argument {0} could not be mapped to any option", argument));
 
-                _currentRule.Value = Convert.ChangeType(argument, _currentRule.Property.PropertyType);
+                _currentRule.ParsedValue = Convert.ChangeType(argument, _currentRule.Property.PropertyType);
                 _currentRule = null;
 
 
@@ -225,14 +233,13 @@ namespace CommandLineParser.Parser
 
         private string ParseBooleanOption(string argument)
         {
-            ParseRule booleanOption = _rulesTable
-                .Where(x => x.Value.Property.PropertyType.IsBoolean())
-                .Select(x => x.Value)
+            ParseRule booleanOption = _rulesTable.Values
+                .Where(x => x.IsBoolean())
                 .OrderBy(x => x.Option.LongName == null ? x.Option.ShortName.Length : x.Option.LongName.Length)
                 .First(x => IsCandidate(argument, x.Option));
 
             _currentRule = booleanOption;
-            _currentRule.Value = true;
+            _currentRule.ParsedValue = true;
             _currentRule = null;
             _state = ParseState.None;
 
@@ -259,7 +266,7 @@ namespace CommandLineParser.Parser
             if (!converter.IsValid(argument))
                 throw new InvalidOperationException(string.Format("The value {0} cannot be assigned to option {1}", argument, _currentRule.Option.ShortName ?? _currentRule.Option.LongName));
 
-            _currentRule.Value = Convert.ChangeType(argument, _currentRule.Property.PropertyType);
+            _currentRule.ParsedValue = Convert.ChangeType(argument, _currentRule.Property.PropertyType);
             _currentRule = null;
 
             return null;
@@ -281,17 +288,6 @@ namespace CommandLineParser.Parser
                 return true;
 
             return false;
-        }
-        
-        private enum ParseState
-        {
-            None,
-            IndexedOption,
-            GenericOption,
-            ShortOption,
-            LongOption,
-            BooleanOption,
-            Value
         }
     }
 }

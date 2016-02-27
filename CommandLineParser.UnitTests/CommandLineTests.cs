@@ -60,8 +60,8 @@ namespace CommandLineParser.UnitTests
 
         private T ParseArguments<T>(string input) where T : class, new()
         {
-            Parser.Parser parser = new Parser.Parser();
-            T options = parser.Parse<T>(input);
+            var parser = new Parser<T>();
+            T options = parser.Parse(input);
 
             return options;
         }

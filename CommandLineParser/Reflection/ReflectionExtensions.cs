@@ -95,13 +95,7 @@ namespace CommandLineParser.Reflection
 
         public static bool IsString(this Type type)
         {
-            switch (Type.GetTypeCode(type))
-            {
-                case TypeCode.String:
-                    return true;
-                default:
-                    return false;
-            }
+            return Type.GetTypeCode(type) == TypeCode.String;
         }
 
         public static bool IsBoolean(this Type type)
@@ -109,13 +103,7 @@ namespace CommandLineParser.Reflection
             if (type == typeof(bool?))
                 return true;
 
-            switch (Type.GetTypeCode(type))
-            {
-                case TypeCode.Boolean:
-                    return true;
-                default:
-                    return false;
-            }
+            return Type.GetTypeCode(type) == TypeCode.Boolean;
         }
     }
 }
