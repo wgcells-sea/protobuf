@@ -16,10 +16,10 @@ namespace CommandLineParser.Parser
         private const string SINGLE_HYPHEN = "-";
         private const string DOUBLE_HYPHEN = "--";
         private readonly Dictionary<string, ParseRule> _rulesTable;
-        private readonly Dictionary<ParseState, Func<string, string>> _parseMap; 
+        private readonly Dictionary<ParseState, Func<string, string>> _parseMap;
         private ParseState _state;
         private ParseRule _currentRule;
-        
+
         public Parser()
         {
             _parseMap = new Dictionary<ParseState, Func<string, string>>
@@ -62,10 +62,10 @@ namespace CommandLineParser.Parser
             List<ParseRule> rules = ReflectionExtensions
                 .GetAttributes<T, OptionAttribute>()
                 .Select(x => new ParseRule
-                            {
-                                Property = x.Key,
-                                Option = x.Value
-                            })
+                {
+                    Property = x.Key,
+                    Option = x.Value
+                })
                 .ToList();
 
             foreach (var rule in rules)
@@ -87,7 +87,7 @@ namespace CommandLineParser.Parser
             T result = new T();
             IEnumerable<ParseRule> parsedRules = _rulesTable
                 .Where(x => x.Value != null)
-                .Select(x=>x.Value);
+                .Select(x => x.Value);
 
             foreach (var entry in parsedRules)
             {
@@ -99,7 +99,7 @@ namespace CommandLineParser.Parser
 
         private void ParseArgument(string argument)
         {
-            if (argument == null) 
+            if (argument == null)
                 throw new ArgumentNullException("argument");
 
             while (!string.IsNullOrEmpty(argument))
@@ -120,7 +120,7 @@ namespace CommandLineParser.Parser
             ParseRule booleanOption = _rulesTable
                 .Where(x => x.Value.Property.PropertyType.IsBoolean())
                 .Select(x => x.Value)
-                .OrderBy(x=>x.Option.LongName == null ? x.Option.ShortName.Length : x.Option.LongName.Length)
+                .OrderBy(x => x.Option.LongName == null ? x.Option.ShortName.Length : x.Option.LongName.Length)
                 .FirstOrDefault(x => IsCandidate(argument, x.Option));
 
             ParseRule regularOption = _rulesTable
@@ -141,7 +141,7 @@ namespace CommandLineParser.Parser
             if (argument.StartsWith(SINGLE_HYPHEN))
                 return ParseState.ShortOption;
 
-            if (argument.IndexOf(EQUAL_MARKER) > 0 || regularOption!=null)
+            if (argument.IndexOf(EQUAL_MARKER) > 0 || regularOption != null)
                 return ParseState.GenericOption;
 
             return ParseState.Value;
@@ -150,7 +150,7 @@ namespace CommandLineParser.Parser
         private string ParseIndexedOption(string argument)
         {
             ParseRule priorityOption = _rulesTable
-                .Where(x => x.Value.Option.Index>=0 && x.Value.Value == null)
+                .Where(x => x.Value.Option.Index >= 0 && x.Value.Value == null)
                 .Select(x => x.Value)
                 .OrderBy(x => x.Option.Index)
                 .FirstOrDefault();
@@ -158,13 +158,13 @@ namespace CommandLineParser.Parser
             if (priorityOption != null)
             {
                 _currentRule = priorityOption;
-                
+
                 if (argument.StartsWith(SINGLE_HYPHEN) || argument.StartsWith(DOUBLE_HYPHEN))
                     throw new ArgumentException(string.Format("Argument {0} could not be mapped to any option", argument));
 
                 _currentRule.Value = Convert.ChangeType(argument, _currentRule.Property.PropertyType);
                 _currentRule = null;
-            
+
 
                 return string.Empty;
             }
@@ -211,7 +211,7 @@ namespace CommandLineParser.Parser
             _state = isBoolean
                 ? ParseState.BooleanOption
                 : ParseState.Value;
-            
+
             return argument;
         }
 
@@ -232,7 +232,7 @@ namespace CommandLineParser.Parser
             {
                 argument = argument.Substring((DOUBLE_HYPHEN + booleanOption.Option.LongName).Length);
             }
-            else if(booleanOption.Option.ShortName != null && argument.StartsWith(SINGLE_HYPHEN + booleanOption.Option.ShortName))
+            else if (booleanOption.Option.ShortName != null && argument.StartsWith(SINGLE_HYPHEN + booleanOption.Option.ShortName))
             {
                 argument = argument.Substring((SINGLE_HYPHEN + booleanOption.Option.ShortName).Length);
             }
@@ -242,7 +242,7 @@ namespace CommandLineParser.Parser
 
         private string ParseValue(string argument)
         {
-            if (_currentRule == null) 
+            if (_currentRule == null)
                 throw new InvalidOperationException(string.Format("There is not option for value {0}", argument));
 
             TypeConverter converter = TypeDescriptor.GetConverter(_currentRule.Property.PropertyType);
@@ -252,7 +252,7 @@ namespace CommandLineParser.Parser
 
             if (!converter.IsValid(argument))
                 throw new InvalidOperationException(string.Format("The value {0} cannot be assigned to option {1}", argument, _currentRule.Option.ShortName ?? _currentRule.Option.LongName));
-            
+
             _currentRule.Value = Convert.ChangeType(argument, _currentRule.Property.PropertyType);
             _currentRule = null;
 
@@ -267,7 +267,7 @@ namespace CommandLineParser.Parser
                 argument.StartsWith(SINGLE_HYPHEN + option.LongName) ||
                 argument.StartsWith(DOUBLE_HYPHEN + option.LongName))
                     return true;
-            } 
+            }
 
             if (argument.StartsWith(option.ShortName) ||
                 argument.StartsWith(SINGLE_HYPHEN + option.ShortName) ||
