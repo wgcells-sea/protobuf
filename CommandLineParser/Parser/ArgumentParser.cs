@@ -9,8 +9,7 @@ using CommandLineParser.Reflection;
 
 namespace CommandLineParser.Parser
 {
-    class ArgumentParser<T>
-        where T : class, new()
+    class ArgumentParser
     {
         private const char EQUAL_MARKER = '=';
         private const string SINGLE_HYPHEN = "-";
