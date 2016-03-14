@@ -8,3 +8,4 @@ obj/
 packages/
 .vs/
 project.lock.json
+*.nuget.targets
