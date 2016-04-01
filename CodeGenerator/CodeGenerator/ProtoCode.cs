@@ -40,6 +40,7 @@ then write the code and the changes in a separate file.");
 
                 cw.WriteLine("using System;");
                 cw.WriteLine("using System.Collections.Generic;");
+                cw.WriteLine("using Carbon.Shared;");
                 cw.WriteLine();
 
                 var messageCode = new MessageCode(cw, options);
@@ -88,6 +89,7 @@ Report bugs to: https://silentorbit.com/protobuf/");
                 cw.Comment(@"DO NOT EDIT
 This file will be overwritten when CodeGenerator is run.");
 
+                cw.WriteLine("using Carbon.Shared;");
                 cw.WriteLine("using System;");
                 cw.WriteLine("using System.IO;");
                 cw.WriteLine("using System.Text;");

@@ -141,7 +141,7 @@ namespace SilentOrbit.ProtocolBuffers
                                 csType = f.OptionCodeType;
 
                             cw.WriteLine("if (instance." + f.CsName + " == null)");
-                            cw.WriteIndent("instance." + f.CsName + " = new List<" + csType + ">();");
+                            cw.WriteIndent("instance." + f.CsName + " = new ProtocolMessageList<" + csType + ">();");
                         }
                     }
                     else if (f.OptionDefault != null)

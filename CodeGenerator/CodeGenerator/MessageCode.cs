@@ -33,7 +33,7 @@ namespace SilentOrbit.ProtocolBuffers
 
             //Default class
             cw.Summary(m.Comments);
-            cw.Bracket(m.OptionAccess + " partial " + m.OptionType + " " + m.CsType);
+            cw.Bracket(m.OptionAccess + " abstract " + m.OptionType + " Base" + m.CsType);
 
             if (options.GenerateDefaultConstructors)
                 GenerateCtorForDefaults(m);
@@ -64,6 +64,10 @@ namespace SilentOrbit.ProtocolBuffers
                 GenerateClass(sub);
                 cw.WriteLine();
             }
+            cw.EndBracket();
+            cw.WriteLine();
+            cw.Bracket(m.OptionAccess + " partial " + m.OptionType + " " + m.CsType + " : Base" + m.CsType + ", IProtocolMessage");
+            cw.WriteLine("public byte [] ToByteArray() {return "+m.CsType+".SerializeToBytes(this);}");
             cw.EndBracket();
             return;
         }
@@ -145,6 +149,55 @@ namespace SilentOrbit.ProtocolBuffers
         /// </param>
         void GenerateProperties(ProtoMessage m)
         {
+            WriteReadOnly(m);
+
+            cw.WriteLine("private bool dirty;");
+            cw.WriteLine(@"
+public bool IsDirty
+{
+    get
+    {
+        if (dirty) return true;"
+            );
+
+            foreach (Field f in m.Fields.Values)
+            {
+                if (!(f.ProtoType is ProtoMessage))
+                {
+                    continue;
+                }
+
+                cw.WriteLine(@"
+        if (" + f.CsName + ".IsDirty) return true;");
+            }
+
+
+            cw.WriteLine(@"
+        return false;
+    }
+}"
+                );
+
+            cw.WriteLine(@"
+public void ClearDirty()
+{
+    dirty = false;"
+            );
+
+            foreach (Field f in m.Fields.Values)
+            {
+                if (!(f.ProtoType is ProtoMessage))
+                {
+                    continue;
+                }
+                cw.WriteLine("    " + f.CsName + ".ClearDirty();");
+            }
+            cw.WriteLine(@"
+
+}"
+                );
+
+
             foreach (Field f in m.Fields.Values)
             {
                 if (f.Comments != null)
@@ -165,6 +218,33 @@ namespace SilentOrbit.ProtocolBuffers
                 cw.WriteLine();
             }
 
+            cw.WriteLine(@"
+public override bool Equals(object obj) {
+	if (obj == null || !obj.GetType().Equals(GetType())) {
+		return false;
+	}
+    " + m.CsType + " otherTyped = ("+m.CsType+") obj;"
+
+                );
+            foreach (Field f in m.Fields.Values)
+            {
+				cw.WriteLine("    if (!ProtobufUtil.IsEqual(_"+f.ProtoName+", otherTyped._" + f.ProtoName +")) return false;");
+            }
+            cw.WriteLine("    return true;");
+            cw.WriteLine("}");
+
+
+            cw.WriteLine(@"
+public override int GetHashCode() {
+	int hash = 0;");
+
+            foreach (Field f in m.Fields.Values)
+            {
+                cw.WriteLine("    hash = ProtobufUtil.CalcHash(_"+f.ProtoName+", hash);");
+            }
+            cw.WriteLine("    return hash;");
+            cw.WriteLine("}");
+
             //Wire format field ID
 #if DEBUGx
             cw.Comment("ProtocolBuffers wire field id");
@@ -175,13 +255,38 @@ namespace SilentOrbit.ProtocolBuffers
 #endif
         }
 
+        private void WriteReadOnly(ProtoMessage m)
+        {
+            cw.WriteLine(@"
+private bool ro;
+public void MakeReadOnly() {
+	ro = true;
+");
+
+            foreach (Field f in m.Fields.Values)
+            {
+                if (f.Rule == FieldRule.Repeated || f.ProtoType is ProtoMessage)
+                {
+                	cw.WriteLine("    _"+f.ProtoName+".MakeReadOnly();");
+                }
+            }
+			cw.WriteLine(@"
+}
+
+protected void MarkDirty() {
+    Check.State(!ro, ""Cannot modify read only entity;"");
+    dirty = true;
+}
+  			");
+        }
+
         string GenerateProperty(Field f)
         {
             string type = f.ProtoType.FullCsType;
             if (f.OptionCodeType != null)
                 type = f.OptionCodeType;
             if (f.Rule == FieldRule.Repeated)
-                type = "List<" + type + ">";
+                type = "ProtocolMessageList<" + type + ">";
             if (f.Rule == FieldRule.Optional && !f.ProtoType.Nullable && options.Nullable)
                 type = type + "?";
 
@@ -190,7 +295,21 @@ namespace SilentOrbit.ProtocolBuffers
             else if (f.ProtoType is ProtoMessage && f.ProtoType.OptionType == "struct")
                 return f.OptionAccess + " " + type + " " + f.CsName + ";";
             else
-                return f.OptionAccess + " " + type + " " + f.CsName + " { get; set; }";
+            {
+                String line;
+                if (f.Rule == FieldRule.Repeated)
+                {
+                    line = "private " + type + " _" + f.ProtoName + " = new ProtocolMessageList<" +
+                           f.ProtoType.FullCsType + ">();\n";
+                }
+                else
+                {
+                    line = "private " + type + " _" + f.ProtoName + ";\n";
+                }
+
+                return line + f.OptionAccess + " " + type + " " + f.CsName + " { get {return _"+f.ProtoName+";} set {_"+f.ProtoName+" = value; MarkDirty();} }";
+            }
+
         }
     }
 }
