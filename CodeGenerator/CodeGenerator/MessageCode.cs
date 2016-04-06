@@ -284,13 +284,14 @@ public void ClearDirty()
 
         private void WriteEquals(ProtoMessage m)
         {
+            string equalsCast = (0 < m.Fields.Values.Count) ? m.CsType + " otherTyped = ("+m.CsType+") obj;" : "";
 
             cw.WriteLine(@"
 public override bool Equals(object obj) {
     if (obj == null || !obj.GetType().Equals(GetType())) {
         return false;
     }
-    " + m.CsType + " otherTyped = ("+m.CsType+") obj;"
+    " + equalsCast
                 );
             foreach (Field f in m.Fields.Values)
             {
