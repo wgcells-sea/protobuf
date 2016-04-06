@@ -183,7 +183,6 @@ private class State {
         private void WriteReadOnly(ProtoMessage m)
         {
             cw.WriteLine(@"
-private bool ro;
 public void MakeReadOnly() {
     _private.ro = true;
 ");
@@ -203,7 +202,7 @@ public void MakeReadOnly() {
         {
             cw.WriteLine(@"
 protected void MarkDirty() {
-    Check.State(!ro, ""Cannot modify read only entity;"");
+    Check.State(!_private.ro, ""Cannot modify read only entity;"");
     _private.dirty = true;
 }");
 
