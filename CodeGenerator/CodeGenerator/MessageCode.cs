@@ -153,7 +153,18 @@ namespace SilentOrbit.ProtocolBuffers
         /// </param>
         void GenerateProperties(ProtoMessage m)
         {
+            WriteState(m);
+            WriteReadOnly(m);
+            WriteMarkDirty(m);
+            WriteIsDirty(m);
+            WriteClearDirty(m);
+            WriteFields(m);
+            WriteEquals(m);
+            WriteGetHashCode(m);
+        }
 
+        private void WriteState(ProtoMessage m)
+        {
             cw.WriteLine(@"
 private readonly State _private = new State();
 private class State {
@@ -167,8 +178,39 @@ private class State {
             }
 
             cw.WriteLine("}");
-            WriteReadOnly(m);
+        }
 
+        private void WriteReadOnly(ProtoMessage m)
+        {
+            cw.WriteLine(@"
+private bool ro;
+public void MakeReadOnly() {
+    _private.ro = true;
+");
+
+            foreach (Field f in m.Fields.Values)
+            {
+                if (f.Rule == FieldRule.Repeated || f.ProtoType is ProtoMessage)
+                {
+                    cw.WriteLine("    _private._"+f.ProtoName+".MakeReadOnly();");
+                }
+            }
+
+            cw.WriteLine("}");
+        }
+
+        private void WriteMarkDirty(ProtoMessage m)
+        {
+            cw.WriteLine(@"
+protected void MarkDirty() {
+    Check.State(!ro, ""Cannot modify read only entity;"");
+    _private.dirty = true;
+}");
+
+        }
+
+        private void WriteIsDirty(ProtoMessage m)
+        {
             cw.WriteLine(@"
 public bool IsDirty
 {
@@ -188,13 +230,15 @@ public bool IsDirty
         if (_private._" + f.ProtoName + ".IsDirty) return true;");
             }
 
-
             cw.WriteLine(@"
         return false;
     }
 }"
                 );
+        }
 
+        private void WriteClearDirty(ProtoMessage m)
+        {
             cw.WriteLine(@"
 public void ClearDirty()
 {
@@ -213,8 +257,10 @@ public void ClearDirty()
 
 }"
                 );
+        }
 
-
+        private void WriteFields(ProtoMessage m)
+        {
             foreach (Field f in m.Fields.Values)
             {
                 if (f.Comments != null)
@@ -234,6 +280,10 @@ public void ClearDirty()
                 }
                 cw.WriteLine();
             }
+        }
+
+        private void WriteEquals(ProtoMessage m)
+        {
 
             cw.WriteLine(@"
 public override bool Equals(object obj) {
@@ -241,7 +291,6 @@ public override bool Equals(object obj) {
         return false;
     }
     " + m.CsType + " otherTyped = ("+m.CsType+") obj;"
-
                 );
             foreach (Field f in m.Fields.Values)
             {
@@ -249,8 +298,10 @@ public override bool Equals(object obj) {
             }
             cw.WriteLine("    return true;");
             cw.WriteLine("}");
+        }
 
-
+        private void WriteGetHashCode(ProtoMessage m)
+        {
             cw.WriteLine(@"
 public override int GetHashCode() {
     int hash = 0;");
@@ -271,32 +322,6 @@ public override int GetHashCode() {
             }
 #endif
         }
-
-        private void WriteReadOnly(ProtoMessage m)
-        {
-            cw.WriteLine(@"
-private bool ro;
-public void MakeReadOnly() {
-    _private.ro = true;
-");
-
-            foreach (Field f in m.Fields.Values)
-            {
-                if (f.Rule == FieldRule.Repeated || f.ProtoType is ProtoMessage)
-                {
-                    cw.WriteLine("    _private._"+f.ProtoName+".MakeReadOnly();");
-                }
-            }
-            cw.WriteLine(@"
-}
-
-protected void MarkDirty() {
-    Check.State(!ro, ""Cannot modify read only entity;"");
-    _private.dirty = true;
-}
-              ");
-        }
-
 
         string GenerateProperty(Field f, bool accessor)
         {
