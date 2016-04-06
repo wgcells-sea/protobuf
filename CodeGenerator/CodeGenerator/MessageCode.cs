@@ -159,8 +159,12 @@ namespace SilentOrbit.ProtocolBuffers
             WriteIsDirty(m);
             WriteClearDirty(m);
             WriteFields(m);
-            WriteEquals(m);
-            WriteGetHashCode(m);
+            if (0 < m.Fields.Values.Count)
+            {
+                WriteEquals(m);
+                WriteGetHashCode(m);
+            }
+            cw.WriteLine();
         }
 
         private void WriteState(ProtoMessage m)
@@ -252,10 +256,7 @@ public void ClearDirty()
                 }
                 cw.WriteLine("    _private._" + f.ProtoName + ".ClearDirty();");
             }
-            cw.WriteLine(@"
-
-}"
-                );
+            cw.WriteLine("}");
         }
 
         private void WriteFields(ProtoMessage m)
@@ -283,14 +284,12 @@ public void ClearDirty()
 
         private void WriteEquals(ProtoMessage m)
         {
-            string equalsCast = (0 < m.Fields.Values.Count) ? m.CsType + " otherTyped = ("+m.CsType+") obj;" : "";
-
             cw.WriteLine(@"
 public override bool Equals(object obj) {
     if (obj == null || !obj.GetType().Equals(GetType())) {
         return false;
     }
-    " + equalsCast
+    " + m.CsType + " otherTyped = ("+m.CsType+") obj;"
                 );
             foreach (Field f in m.Fields.Values)
             {
