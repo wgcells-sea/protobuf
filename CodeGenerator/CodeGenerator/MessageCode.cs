@@ -33,11 +33,11 @@ namespace SilentOrbit.ProtocolBuffers
 
             //Default class
             cw.Summary(m.Comments);
-            cw.Bracket(m.OptionAccess + " abstract " + m.OptionType + " Base" + m.CsType);
+            cw.Bracket(m.OptionAccess + " partial " + m.OptionType + " " + m.CsType + " : IProtocolMessage");
 
             if (options.GenerateDefaultConstructors)
                 GenerateCtorForDefaults(m);
-
+            GenerateFullName(m);
             GenerateEnums(m);
 
             GenerateProperties(m);
@@ -64,13 +64,17 @@ namespace SilentOrbit.ProtocolBuffers
                 GenerateClass(sub);
                 cw.WriteLine();
             }
-            cw.EndBracket();
-            cw.WriteLine();
-            cw.Bracket(m.OptionAccess + " partial " + m.OptionType + " " + m.CsType + " : Base" + m.CsType + ", IProtocolMessage");
             cw.WriteLine("public byte [] ToByteArray() {return "+m.CsType+".SerializeToBytes(this);}");
             cw.EndBracket();
             return;
         }
+
+        private void GenerateFullName(ProtoMessage m)
+        {
+            cw.WriteLine("public static readonly string PROTO_NAME = \"" + m.FullProtoName + "\";");
+            cw.WriteLine("public string ProtoName { get{return PROTO_NAME;}}");
+        }
+
 
         void GenerateCtorForDefaults(ProtoMessage m)
         {
@@ -149,15 +153,28 @@ namespace SilentOrbit.ProtocolBuffers
         /// </param>
         void GenerateProperties(ProtoMessage m)
         {
+
+            cw.WriteLine(@"
+private readonly State _private = new State();
+private class State {
+	internal bool ro;
+	internal bool dirty;
+			");
+
+            foreach (Field f in m.Fields.Values)
+            {
+                cw.WriteLine("    " + GenerateProperty(f, false));
+            }
+
+            cw.WriteLine("}");
             WriteReadOnly(m);
 
-            cw.WriteLine("private bool dirty;");
             cw.WriteLine(@"
 public bool IsDirty
 {
     get
     {
-        if (dirty) return true;"
+        if (_private.dirty) return true;"
             );
 
             foreach (Field f in m.Fields.Values)
@@ -168,7 +185,7 @@ public bool IsDirty
                 }
 
                 cw.WriteLine(@"
-        if (" + f.CsName + ".IsDirty) return true;");
+        if (_private._" + f.ProtoName + ".IsDirty) return true;");
             }
 
 
@@ -181,7 +198,7 @@ public bool IsDirty
             cw.WriteLine(@"
 public void ClearDirty()
 {
-    dirty = false;"
+    _private.dirty = false;"
             );
 
             foreach (Field f in m.Fields.Values)
@@ -190,7 +207,7 @@ public void ClearDirty()
                 {
                     continue;
                 }
-                cw.WriteLine("    " + f.CsName + ".ClearDirty();");
+                cw.WriteLine("    _private._" + f.ProtoName + ".ClearDirty();");
             }
             cw.WriteLine(@"
 
@@ -207,13 +224,13 @@ public void ClearDirty()
                 {
                     if (f.OptionDeprecated)
                         cw.WriteLine("// [Obsolete]");
-                    cw.WriteLine("//" + GenerateProperty(f) + " // Implemented by user elsewhere");
+                    cw.WriteLine("//" + GenerateProperty(f, true) + " // Implemented by user elsewhere");
                 }
                 else
                 {
                     if (f.OptionDeprecated)
                         cw.WriteLine("[Obsolete]");
-                    cw.WriteLine(GenerateProperty(f));
+                    cw.WriteLine(GenerateProperty(f, true));
                 }
                 cw.WriteLine();
             }
@@ -228,7 +245,7 @@ public override bool Equals(object obj) {
                 );
             foreach (Field f in m.Fields.Values)
             {
-				cw.WriteLine("    if (!ProtobufUtil.IsEqual(_"+f.ProtoName+", otherTyped._" + f.ProtoName +")) return false;");
+				cw.WriteLine("    if (!ProtobufUtil.IsEqual(_private._"+f.ProtoName+", otherTyped._private._" + f.ProtoName +")) return false;");
             }
             cw.WriteLine("    return true;");
             cw.WriteLine("}");
@@ -240,7 +257,7 @@ public override int GetHashCode() {
 
             foreach (Field f in m.Fields.Values)
             {
-                cw.WriteLine("    hash = ProtobufUtil.CalcHash(_"+f.ProtoName+", hash);");
+                cw.WriteLine("    hash = ProtobufUtil.CalcHash(_private._"+f.ProtoName+", hash);");
             }
             cw.WriteLine("    return hash;");
             cw.WriteLine("}");
@@ -260,14 +277,14 @@ public override int GetHashCode() {
             cw.WriteLine(@"
 private bool ro;
 public void MakeReadOnly() {
-	ro = true;
+	_private.ro = true;
 ");
 
             foreach (Field f in m.Fields.Values)
             {
                 if (f.Rule == FieldRule.Repeated || f.ProtoType is ProtoMessage)
                 {
-                	cw.WriteLine("    _"+f.ProtoName+".MakeReadOnly();");
+                	cw.WriteLine("    _private._"+f.ProtoName+".MakeReadOnly();");
                 }
             }
 			cw.WriteLine(@"
@@ -275,12 +292,13 @@ public void MakeReadOnly() {
 
 protected void MarkDirty() {
     Check.State(!ro, ""Cannot modify read only entity;"");
-    dirty = true;
+    _private.dirty = true;
 }
   			");
         }
 
-        string GenerateProperty(Field f)
+
+        string GenerateProperty(Field f, bool accessor)
         {
             string type = f.ProtoType.FullCsType;
             if (f.OptionCodeType != null)
@@ -296,18 +314,23 @@ protected void MarkDirty() {
                 return f.OptionAccess + " " + type + " " + f.CsName + ";";
             else
             {
-                String line;
-                if (f.Rule == FieldRule.Repeated)
+                if (!accessor)
                 {
-                    line = "private " + type + " _" + f.ProtoName + " = new ProtocolMessageList<" +
-                           f.ProtoType.FullCsType + ">();\n";
+                    if (f.Rule == FieldRule.Repeated)
+                    {
+                        return "internal " + type + " _" + f.ProtoName + " = new ProtocolMessageList<" +
+                               f.ProtoType.FullCsType + ">();\n";
+                    }
+                    else
+                    {
+                        return "internal " + type + " _" + f.ProtoName + ";\n";
+                    }
                 }
                 else
                 {
-                    line = "private " + type + " _" + f.ProtoName + ";\n";
+                    return f.OptionAccess + " " + type + " " + f.CsName + " { get {return _private._"+f.ProtoName+";} set { MarkDirty(); _private._"+f.ProtoName+" = value; } }";
                 }
 
-                return line + f.OptionAccess + " " + type + " " + f.CsName + " { get {return _"+f.ProtoName+";} set {_"+f.ProtoName+" = value; MarkDirty();} }";
             }
 
         }

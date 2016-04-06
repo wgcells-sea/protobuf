@@ -298,10 +298,9 @@ namespace SilentOrbit.ProtocolBuffers
 
             switch (key)
             {
-            //None at the moment
-            //case "namespace":
-            //    m.OptionNamespace = value;
-            //    break;
+                case "csharp_namespace":
+                    m.OptionNamespace = value;
+                    break;
                 default:
                     Console.WriteLine("Warning: Unknown option: " + key + " = " + value);
                     break;

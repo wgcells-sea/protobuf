@@ -68,7 +68,9 @@ namespace SilentOrbit.ProtocolBuffers
 
         #region Local options
 
-        public string OptionNamespace { get; set; }
+        private string ns;
+        public string OptionNamespace { get { return ns; } 
+            set { ns = value; } }
 
         /// <summary>
         /// (C#) access modifier: public(default)/protected/private

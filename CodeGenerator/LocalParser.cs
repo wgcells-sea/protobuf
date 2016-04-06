@@ -46,7 +46,7 @@ namespace SilentOrbit.ProtocolBuffers
             //Parse value
             switch (key)
             {
-                case "namespace":
+                case "csharp_namespace":
                     message.OptionNamespace = value;
                     break;
                 case "access":
