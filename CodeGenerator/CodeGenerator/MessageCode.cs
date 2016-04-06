@@ -19,7 +19,7 @@ namespace SilentOrbit.ProtocolBuffers
         {
             if (options.NoGenerateImported && m.IsImported)
             {
-                Console.Error.WriteLine("Skipping imported " + m.FullProtoName);   
+                Console.Error.WriteLine("Skipping imported " + m.FullProtoName);
                 return;
             }
 
@@ -113,7 +113,7 @@ namespace SilentOrbit.ProtocolBuffers
         {
             if (options.NoGenerateImported && m.IsImported)
             {
-                Console.Error.WriteLine("Skipping imported enum " + m.FullProtoName);   
+                Console.Error.WriteLine("Skipping imported enum " + m.FullProtoName);
                 return;
             }
 
@@ -157,9 +157,9 @@ namespace SilentOrbit.ProtocolBuffers
             cw.WriteLine(@"
 private readonly State _private = new State();
 private class State {
-	internal bool ro;
-	internal bool dirty;
-			");
+    internal bool ro;
+    internal bool dirty;
+            ");
 
             foreach (Field f in m.Fields.Values)
             {
@@ -237,15 +237,15 @@ public void ClearDirty()
 
             cw.WriteLine(@"
 public override bool Equals(object obj) {
-	if (obj == null || !obj.GetType().Equals(GetType())) {
-		return false;
-	}
+    if (obj == null || !obj.GetType().Equals(GetType())) {
+        return false;
+    }
     " + m.CsType + " otherTyped = ("+m.CsType+") obj;"
 
                 );
             foreach (Field f in m.Fields.Values)
             {
-				cw.WriteLine("    if (!ProtobufUtil.IsEqual(_private._"+f.ProtoName+", otherTyped._private._" + f.ProtoName +")) return false;");
+                cw.WriteLine("    if (!ProtobufUtil.IsEqual(_private._"+f.ProtoName+", otherTyped._private._" + f.ProtoName +")) return false;");
             }
             cw.WriteLine("    return true;");
             cw.WriteLine("}");
@@ -253,7 +253,7 @@ public override bool Equals(object obj) {
 
             cw.WriteLine(@"
 public override int GetHashCode() {
-	int hash = 0;");
+    int hash = 0;");
 
             foreach (Field f in m.Fields.Values)
             {
@@ -277,24 +277,24 @@ public override int GetHashCode() {
             cw.WriteLine(@"
 private bool ro;
 public void MakeReadOnly() {
-	_private.ro = true;
+    _private.ro = true;
 ");
 
             foreach (Field f in m.Fields.Values)
             {
                 if (f.Rule == FieldRule.Repeated || f.ProtoType is ProtoMessage)
                 {
-                	cw.WriteLine("    _private._"+f.ProtoName+".MakeReadOnly();");
+                    cw.WriteLine("    _private._"+f.ProtoName+".MakeReadOnly();");
                 }
             }
-			cw.WriteLine(@"
+            cw.WriteLine(@"
 }
 
 protected void MarkDirty() {
     Check.State(!ro, ""Cannot modify read only entity;"");
     _private.dirty = true;
 }
-  			");
+              ");
         }
 
 
