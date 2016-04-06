@@ -303,7 +303,7 @@ public override bool Equals(object obj) {
         {
             cw.WriteLine(@"
 public override int GetHashCode() {
-    int hash = 0;");
+    int hash = 13;");
 
             foreach (Field f in m.Fields.Values)
             {
