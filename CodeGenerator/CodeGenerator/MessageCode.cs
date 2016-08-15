@@ -37,7 +37,7 @@ namespace SilentOrbit.ProtocolBuffers
 
             if (options.GenerateDefaultConstructors)
                 GenerateCtorForDefaults(m);
-            GenerateFullName(m);
+            GenerateProtoName(m);
             GenerateEnums(m);
 
             GenerateProperties(m);
@@ -69,10 +69,10 @@ namespace SilentOrbit.ProtocolBuffers
             return;
         }
 
-        private void GenerateFullName(ProtoMessage m)
+        private void GenerateProtoName(ProtoMessage m)
         {
             cw.WriteLine("public static readonly string PROTO_NAME = \"" + m.FullProtoName + "\";");
-            cw.WriteLine("public string ProtoName { get{return PROTO_NAME;}}");
+            cw.WriteLine("public string ProtoName { get { return PROTO_NAME; } }");
         }
 
 

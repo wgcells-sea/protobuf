@@ -121,6 +121,7 @@ namespace SilentOrbit.ProtocolBuffers
             }
             this.Parent = parent;
             this.Package = package;
+            this.OptionNamespace = parent?.OptionNamespace;
         }
 
         public ProtoType()
